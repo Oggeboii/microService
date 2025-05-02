@@ -8,10 +8,6 @@ import java.util.ServiceLoader;
 public class CurrencyConverter {
 
     public Scanner scanner;
-    private CurrencyInfo usdInfo;
-    private CurrencyInfo sekInfo;
-    private CurrencyInfo dkkInfo;
-    private CurrencyInfo vbInfo;
     private CurrencyInfo currentCurrency;
 
     public CurrencyConverter() {
@@ -24,27 +20,6 @@ public class CurrencyConverter {
     }
 
     public void run() {
-        ServiceLoader<Currency> currencyServiceLoader = ServiceLoader.load(Currency.class);
-
-        var currencies = currencyServiceLoader.stream()
-                .map(ServiceLoader.Provider::get)
-                .toList();
-
-        for (Currency currency : currencies) {
-            String currencyName = currency.getClass().getSimpleName();
-            CurrencyInfo currencyInfo = new CurrencyInfo(currency.currencyName(), currency.currencyAcronym(), currency.currencyDiffUSD());
-
-            if (currencyName.startsWith("American")) {
-                usdInfo = currencyInfo;
-            } else if (currencyName.startsWith("Swedish")) {
-                sekInfo = currencyInfo;
-            } else if (currencyName.startsWith("Danish")) {
-                dkkInfo = currencyInfo;
-            } else if (currencyName.startsWith("Fortnite")) {
-                vbInfo = currencyInfo;
-            }
-        }
-
         int defaultAmount = 1;
         boolean showMenu = true;
 
@@ -54,36 +29,34 @@ public class CurrencyConverter {
     }
 
     private boolean displayMenu(int defaultAmount) {
-        System.out.println("1. " + usdInfo.name);
-        System.out.println("2. " + sekInfo.name);
-        System.out.println("3. " + dkkInfo.name);
-        System.out.println("4. " + vbInfo.name);
+        ServiceLoader<Currency> currencyServiceLoader = ServiceLoader.load(Currency.class);
+        var currencies = currencyServiceLoader.stream()
+                .map(ServiceLoader.Provider::get)
+                .toList();
+
+        for (int i = 0; i < currencies.size(); i++) {
+            System.out.println((i + 1) + ". " + currencies.get(i).currencyName());
+        }
 
         String menuSelected = scanner.nextLine();
-        switch (menuSelected) {
-            case "1":
-                displayExchangeRates(usdInfo, defaultAmount);
-                currentCurrency = usdInfo;
-                return displayOptions(defaultAmount);
-            case "2":
-                displayExchangeRates(sekInfo, defaultAmount);
-                currentCurrency = sekInfo;
-                return displayOptions(defaultAmount);
-            case "3":
-                displayExchangeRates(dkkInfo, defaultAmount);
-                currentCurrency = dkkInfo;
-                return displayOptions(defaultAmount);
-            case "4":
-                displayExchangeRates(vbInfo, defaultAmount);
-                currentCurrency = vbInfo;
-                return displayOptions(defaultAmount);
-            default:
+        try {
+            int selectedIndex = Integer.parseInt(menuSelected) - 1;
+            if (selectedIndex >= 0 && selectedIndex < currencies.size()) {
+                Currency selectedCurrency = currencies.get(selectedIndex);
+                currentCurrency = new CurrencyInfo(selectedCurrency.currencyName(), selectedCurrency.currencyAcronym(), selectedCurrency.currencyDiffUSD());
+                displayExchangeRates(currentCurrency, defaultAmount, currencies);
+                return displayOptions(defaultAmount, currencies);
+            } else {
                 System.out.println("Invalid selection. Please try again.");
                 return true;
+            }
+        } catch (NumberFormatException e) {
+            System.out.println("Invalid selection. Please try again.");
+            return true;
         }
     }
 
-    private boolean displayOptions(int defaultAmount) {
+    private boolean displayOptions(int defaultAmount, java.util.List<Currency> currencies) {
         boolean showOptions = true;
         while (showOptions) {
             System.out.println("1. Back to menu");
@@ -97,7 +70,7 @@ public class CurrencyConverter {
                     try {
                         System.out.println("Enter amount to change: ");
                         defaultAmount = Integer.parseInt(scanner.nextLine());
-                        displayExchangeRates(currentCurrency, defaultAmount);
+                        displayExchangeRates(currentCurrency, defaultAmount, currencies);
                     } catch (NumberFormatException e) {
                         System.out.println("Invalid amount. Please enter a valid number.");
                     }
@@ -109,12 +82,12 @@ public class CurrencyConverter {
         return false;
     }
 
-    public void displayExchangeRates(CurrencyInfo currencyInfo, int amount) {
+    public void displayExchangeRates(CurrencyInfo currencyInfo, int amount, java.util.List<Currency> currencies) {
         System.out.println("Exchange rates for " + currencyInfo.name + " (" + currencyInfo.acronym + "):");
-        System.out.println(amount + " " + currencyInfo.acronym + " : " + String.format("%.3f" , (amount * currencyInfo.exchangeRate / usdInfo.exchangeRate)) + " " + usdInfo.acronym);
-        System.out.println(amount + " " + currencyInfo.acronym + " : " + String.format("%.3f", (amount * currencyInfo.exchangeRate / sekInfo.exchangeRate)) + " " + sekInfo.acronym);
-        System.out.println(amount + " " + currencyInfo.acronym + " : " + String.format("%.3f", (amount * currencyInfo.exchangeRate / dkkInfo.exchangeRate)) + " " + dkkInfo.acronym);
-        System.out.println(amount + " " + currencyInfo.acronym + " : " + String.format("%.3f", (amount * currencyInfo.exchangeRate / vbInfo.exchangeRate)) + " " + vbInfo.acronym);
+        for (Currency currency : currencies) {
+            CurrencyInfo info = new CurrencyInfo(currency.currencyName(), currency.currencyAcronym(), currency.currencyDiffUSD());
+            System.out.println(amount + " " + currencyInfo.acronym + " : " + String.format("%.3f", (amount * currencyInfo.exchangeRate / info.exchangeRate)) + " " + info.acronym);
+        }
     }
 
     private static class CurrencyInfo {
