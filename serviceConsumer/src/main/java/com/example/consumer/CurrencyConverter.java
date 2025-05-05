@@ -2,6 +2,7 @@ package com.example.consumer;
 
 import com.example.currency.Currency;
 
+import java.util.List;
 import java.util.Scanner;
 import java.util.ServiceLoader;
 
@@ -56,7 +57,7 @@ public class CurrencyConverter {
         }
     }
 
-    private boolean displayOptions(int defaultAmount, java.util.List<Currency> currencies) {
+    private boolean displayOptions(int defaultAmount, List<Currency> currencies) {
         boolean showOptions = true;
         while (showOptions) {
             System.out.println("1. Back to menu");
